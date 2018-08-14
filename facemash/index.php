@@ -1,15 +1,83 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "facemash";
+  $servername = "localhost";
+  $username = "root";
+  $password = "";
+  $dbname = "facemash";
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+  // Create connection
+  $conn = new mysqli($servername, $username, $password, $dbname);
+  // Check connection
+  if ($conn->connect_error) {
+      die("Connection failed: " . $conn->connect_error);
+  }
+
+  if(!empty($_GET["win"]) || !empty($_GET["lost"])){
+    $win_id = $_GET["win"];
+    $lost_id = $_GET["lost"];
+
+    //echo $win_id, $lost_id;
+
+  $sql = "SELECT * FROM user_details WHERE id=" . $win_id;
+  $result = $conn->query($sql);
+  
+  if ($result->num_rows > 0) {
+      // output data of each row
+      while($row = $result->fetch_assoc()) {
+          $win_rank = $row["rank"];
+      }
+  }
+
+  $sql = "SELECT * FROM user_details WHERE id=" . $lost_id;
+  $result = $conn->query($sql);
+  
+  if ($result->num_rows > 0) {
+      // output data of each row
+      while($row = $result->fetch_assoc()) {
+          $lost_rank = $row["rank"];
+      }
+  }
+
+  //echo $win_rank, " ", $lost_rank, "<br>";
+
+  function probability($rating1, $rating2){
+    //find the probability 
+    return 1.0 * 1.0 / (1 + 1.0 * pow(10, 1.0 * ($rating1 - $rating2) / 400));
+  }
+
+  //finding probability of players
+
+  $win_prob = probability($win_rank, $lost_rank);
+  $lost_prob = probability($lost_rank, $win_rank);
+
+  //echo $win_prob, $lost_prob;
+
+  //const 
+  $const00 = 30;
+
+  //updating ratings
+  $win_rank = round($win_rank + $const00 * (1 - $win_prob));
+  $lost_rank = round($lost_rank + $const00 * (0 - $lost_prob));
+  
+  //echo $win_rank, " ", $lost_rank;
+
+  //update into database
+
+  $sql = "UPDATE user_details SET rank=" . $win_rank . " WHERE id=" . $win_id;
+  //echo $sql;
+  if ($conn->query($sql) === TRUE) {
+    //echo "Record updated successfully";
+  } else {
+      echo "Error updating record: " . $conn->error;
+  }
+  $sql = "UPDATE user_details SET rank=" . $lost_rank . " WHERE id=" . $lost_id;
+  //echo $sql;
+  if ($conn->query($sql) === TRUE) {
+    //echo "Record updated successfully";
+  } else {
+      echo "Error updating record: " . $conn->error;
+  }
+
+  }
 ?> 
 
 <!doctype html>
@@ -132,10 +200,10 @@ if ($conn->connect_error) {
 
         <?php 
         }
-      } else {
-          echo "0 results";
-      }
-      $conn->close();  
+        } else {
+            echo "0 results";
+        }
+        $conn->close();  
         ?>
       </div>
     </div>
